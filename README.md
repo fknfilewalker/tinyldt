@@ -3,7 +3,7 @@ A simple header only loader for ldt files. Parses the file and writes its conten
 
 ## Usage
 ```c++
-#include <tiny_ldt.hpp>
+#include "tiny_ldt.hpp"
 
 tiny_ldt::light ldt;
 std::string err;
