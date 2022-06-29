@@ -8,7 +8,7 @@ A simple header only loader for ldt files. Parses the file and writes its conten
 tiny_ldt::light ldt;
 std::string err;
 std::string warn;
-if (!tiny_ldt::load_LDT(file.string(),err, warn, ldt)) {
+if (!tiny_ldt::load_ldt(filepath, err, warn, ldt)) {
 	// print loading failed
 }
 if (!err.empty()) // print error
