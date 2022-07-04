@@ -2,7 +2,7 @@
 // | Project : tinyldt.
 // | All rights reserved.
 // +----------------------------------------------------------------------
-// | Copyright (c) Lukas Lipp 2021.
+// | Copyright (c) Lukas Lipp 2021-2022.
 // +----------------------------------------------------------------------
 // | * Redistribution and use of this software in source and binary forms,
 // |   with or without modification, are permitted provided that the following
@@ -41,6 +41,12 @@
 #include <array>
 #include <fstream>
 
+#ifdef TINYLDT_USE_DOUBLE
+#define TINYLDT_FPN double
+#else
+#define TINYLDT_FPN float
+#endif
+
 class tiny_ldt {
 public:
     // https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/eulumdat_file_format.htm
@@ -72,9 +78,9 @@ public:
         uint32_t ltyp;              /* Type indicator (0 - point source with no symmetry; 1 - symmetry  about the vertical axis; 2 - linear luminaire; 3 - point source with any other symmetry. Note: only linear luminaires, Ityp = 2, are being subdivided in longitudinal and transverse directions) */
         uint32_t lsym;              /* Symmetry indicator (0 ... no symmetry; 1 - symmetry about the vertical axis; 2 - symmetry to plane C0-C180; 3 - symmetry to plane C90-C270; 4 - symmetry to plane C0-C180 and to plane C90-C270) */
         uint32_t mc, mc1, mc2;      /* Number of C-planes between 0 and 360 degrees (usually 24 for interior, 36 for road lighting luminaires) */
-        float dc;                   /* Distance between C-planes (Dc = 0 for non-equidistantly available C-planes) */
+        TINYLDT_FPN dc;                   /* Distance between C-planes (Dc = 0 for non-equidistantly available C-planes) */
         uint32_t ng;                /* Number of luminous intensities in each C-plane (usually 19 or 37) */
-        float dg;                   /* Distance between luminous intensities per C-plane (Dg = 0 for non-equidistantly available luminous intensities in C-planes) */
+        TINYLDT_FPN dg;                   /* Distance between luminous intensities per C-plane (Dg = 0 for non-equidistantly available luminous intensities in C-planes) */
 
         std::string measurement_report_number;
         std::string luminaire_name;
@@ -93,18 +99,18 @@ public:
         uint32_t height_luminous_area_c180; /* mm */
         uint32_t height_luminous_area_c270; /* mm */
 
-        float dff;                          /* % */
-        float lorl;                         /* % */
-        float conversion_factor;
+        TINYLDT_FPN dff;                          /* % */
+        TINYLDT_FPN lorl;                         /* % */
+        TINYLDT_FPN conversion_factor;
         uint32_t tilt_of_luminaire;
         uint32_t n;
 
         struct lamp_data_s {
             lamp_data_s() : number_of_lamps(0),
-        					total_luminous_flux(0),
-        					color_temperature(0),
-        					color_rendering_group(0),
-                            watt(0)
+                total_luminous_flux(0),
+                color_temperature(0),
+                color_rendering_group(0),
+                watt(0)
             {}
 
             int number_of_lamps;
@@ -112,41 +118,47 @@ public:
             uint32_t total_luminous_flux;   /* lm */
             uint32_t color_temperature;
             uint32_t color_rendering_group;
-            float watt;                     /* W */
+            TINYLDT_FPN watt;                     /* W */
         };
         std::vector<lamp_data_s> lamp_data;
 
-        std::array<float, 10> dr;
-        std::vector<float> angles_c;
-        std::vector<float> angles_g;
-        std::vector<float> luminous_intensity_distribution; /* cd/1000 lumens */
+        std::array<TINYLDT_FPN, 10> dr;
+        std::vector<TINYLDT_FPN> angles_c;
+        std::vector<TINYLDT_FPN> angles_g;
+        std::vector<TINYLDT_FPN> luminous_intensity_distribution; /* cd/1000 lumens */
     };
 
-    static bool load_ldt(const std::string file, std::string& err_out, std::string& warn_out, light& ldt_out) {
-        std::ifstream f(file);
+    static bool load_ldt(const std::string filename, std::string& err_out, std::string& warn_out, light& ldt_out) {
+        std::ifstream f(filename);
         if (!f) {
-            err_out = "Failed reading file: " + file;
+            err_out = "Failed reading file: " + filename;
             return false;
         }
 
         ldt_out = {};
         std::string line;
 
-#define NEXT_LINE(name) if (!std::getline(f, line)) { err_out = "Error reading <" name "> property: " + file; f.close(); return false; }
+#define NEXT_LINE(name) if (!std::getline(f, line)) { err_out = "Error reading <" name "> property: " + filename; f.close(); return false; }
 #define CATCH(a) try{a;} catch (...) { warn_out = "Some values could not be read"; }
+#ifdef TINYLDT_USE_DOUBLE
+#define TO_TINYLDT_FPN(v) std::stod(v)
+#else
+#define TO_TINYLDT_FPN(v) std::stof(v)
+#endif
+
         /* line  1 */ NEXT_LINE("Manufacturer") ldt_out.manufacturer = line;
         /* line  2 */ NEXT_LINE("Type") CATCH(ldt_out.ltyp = std::stoi(line))
     	/* line  3 */ NEXT_LINE("Symmetry") CATCH(ldt_out.lsym = std::stoi(line))
-        /* line  4 */ NEXT_LINE("Mc") CATCH(ldt_out.mc = std::stoi(line))
+    	/* line  4 */ NEXT_LINE("Mc") CATCH(ldt_out.mc = std::stoi(line))
         if (calc_mc1_mc2(ldt_out)) {
             err_out = "Error reading light symmetry";
             return false;
         }
-        /* line  5 */ NEXT_LINE("Dc") CATCH(ldt_out.dc = std::stof(line))
-        /* line  6 */ NEXT_LINE("Ng") CATCH(ldt_out.ng = std::stoi(line))
-        /* line  7 */ NEXT_LINE("Dg") CATCH(ldt_out.dg = std::stof(line))
+        /* line  5 */ NEXT_LINE("Dc") CATCH(ldt_out.dc = TO_TINYLDT_FPN(line))
+    	/* line  6 */ NEXT_LINE("Ng") CATCH(ldt_out.ng = std::stoi(line))
+    	/* line  7 */ NEXT_LINE("Dg") CATCH(ldt_out.dg = TO_TINYLDT_FPN(line))
 
-        /* line  8 */ NEXT_LINE("Measurement report number") ldt_out.measurement_report_number = line;
+    	/* line  8 */ NEXT_LINE("Measurement report number") ldt_out.measurement_report_number = line;
         /* line  9 */ NEXT_LINE("Luminaire name") ldt_out.luminaire_name = line;
         /* line 10 */ NEXT_LINE("Luminaire number") ldt_out.luminaire_number = line;
         /* line 11 */ NEXT_LINE("File name") ldt_out.file_name = line;
@@ -161,9 +173,9 @@ public:
         /* line 19 */ NEXT_LINE("Height of luminous area C90-plane") CATCH(ldt_out.height_luminous_area_c90 = std::stoi(line))
         /* line 20 */ NEXT_LINE("Height of luminous area C180-plane") CATCH(ldt_out.height_luminous_area_c180 = std::stoi(line))
         /* line 21 */ NEXT_LINE("Height of luminous area C270-plane") CATCH(ldt_out.height_luminous_area_c270 = std::stoi(line))
-        /* line 22 */ NEXT_LINE("Downward flux fraction") CATCH(ldt_out.dff = std::stof(line))
-        /* line 23 */ NEXT_LINE("Light output ratio luminaire") CATCH(ldt_out.lorl = std::stof(line))
-        /* line 24 */ NEXT_LINE("Conversion factor for luminous intensities") CATCH(ldt_out.conversion_factor = std::stof(line))
+        /* line 22 */ NEXT_LINE("Downward flux fraction") CATCH(ldt_out.dff = TO_TINYLDT_FPN(line))
+        /* line 23 */ NEXT_LINE("Light output ratio luminaire") CATCH(ldt_out.lorl = TO_TINYLDT_FPN(line))
+        /* line 24 */ NEXT_LINE("Conversion factor for luminous intensities") CATCH(ldt_out.conversion_factor = TO_TINYLDT_FPN(line))
         /* line 25 */ NEXT_LINE("Tilt of luminaire during measurement") CATCH(ldt_out.tilt_of_luminaire = std::stoi(line))
         /* line 26 */ NEXT_LINE("Number of standard sets of lamps") CATCH(ldt_out.n = std::stoi(line))
 
@@ -185,18 +197,18 @@ public:
             /* line 26e */ NEXT_LINE("Color rendering group") CATCH(ld.color_rendering_group = std::stoi(line))
         }
         for (light::lamp_data_s& ld : ldt_out.lamp_data) {
-            /* line 26f */ NEXT_LINE("Wattage including ballast") CATCH(ld.watt = std::stof(line))
+            /* line 26f */ NEXT_LINE("Wattage including ballast") CATCH(ld.watt = TO_TINYLDT_FPN(line))
         }
-        for (float& v : ldt_out.dr) {
-            /* line 27 */ NEXT_LINE("Direct ratios for room indices k = 0.6 ... 5") CATCH(v = std::stof(line))
+        for (TINYLDT_FPN& v : ldt_out.dr) {
+            /* line 27 */ NEXT_LINE("Direct ratios for room indices k = 0.6 ... 5") CATCH(v = TO_TINYLDT_FPN(line))
         }
         ldt_out.angles_c.resize(ldt_out.mc);
-        for (float& v : ldt_out.angles_c) {
-            /* line 28 */ NEXT_LINE("Angles C") CATCH(v = std::stof(line))
+        for (TINYLDT_FPN& v : ldt_out.angles_c) {
+            /* line 28 */ NEXT_LINE("Angles C") CATCH(v = TO_TINYLDT_FPN(line))
         }
         ldt_out.angles_g.resize(ldt_out.ng);
-        for (float& v : ldt_out.angles_g) {
-            /* line 29 */ NEXT_LINE("Angles G") CATCH(v = std::stof(line))
+        for (TINYLDT_FPN& v : ldt_out.angles_g) {
+            /* line 29 */ NEXT_LINE("Angles G") CATCH(v = TO_TINYLDT_FPN(line))
         }
         // 30 ((Mc2 - Mc1 + 1) * Ng)
         // if lsym 0 : mc1 = 1, mc2 = mc
@@ -205,8 +217,8 @@ public:
         // if lsym 3 : mc1 = 3 * mc / 4 + 1, mc2 = mc1 + mc / 2
         // if lsym 4 : mc1 = 1, mc2 = mc / 4 + 1
         ldt_out.luminous_intensity_distribution.resize((static_cast<size_t>(ldt_out.mc2) - static_cast<size_t>(ldt_out.mc1) + 1) * static_cast<size_t>(ldt_out.ng));
-        for (float& v : ldt_out.luminous_intensity_distribution) {
-            /* line 29 */ NEXT_LINE("Luminous intensity distribution") CATCH(v = std::stof(line))
+        for (TINYLDT_FPN& v : ldt_out.luminous_intensity_distribution) {
+            /* line 29 */ NEXT_LINE("Luminous intensity distribution") CATCH(v = TO_TINYLDT_FPN(line))
         }
 
 #undef NEXT_LINE
