@@ -1,5 +1,5 @@
 # Header only C++11 LDT loader.
-A simple header only loader for ldt files. Parses the file and writes its content to a struct. 
+A simple header only loader/writer for ldt files. Parses the file and writes its content to a struct or vice versa. 
 
 ## Usage
 ```c++
@@ -7,7 +7,7 @@ A simple header only loader for ldt files. Parses the file and writes its conten
 
 tiny_ldt<float>::light ldt;
 // optional: use double precision 
-// tiny_ldt<double>;
+// tiny_ldt<double>
 std::string err;
 std::string warn;
 if (!tiny_ldt<float>::load_ldt(filepath, err, warn, ldt)) {
