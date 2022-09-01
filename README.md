@@ -3,18 +3,30 @@ A simple header only loader for ldt files. Parses the file and writes its conten
 
 ## Usage
 ```c++
-// optional: use double precision for loading the file
-#define TINYLDT_USE_DOUBLE
 #include <tiny_ldt.hpp>
 
-tiny_ldt::light ldt;
+tiny_ldt<float>::light ldt;
+// optional: use double precision 
+// tiny_ldt<double>;
 std::string err;
 std::string warn;
-if (!tiny_ldt::load_ldt(filepath, err, warn, ldt)) {
+if (!tiny_ldt<float>::load_ldt(filepath, err, warn, ldt)) {
 	// print loading failed
 }
 if (!err.empty()) // print error
 if (!warn.empty()) // print warning
+
+// write ltd to file
+if (!tiny_ldt<float>::write_ldt("out.ldt", ldt, /*optional precision*/ 10)) {
+	// print writing failed
+}
 ```
+
+![asd](image.png)
+
+## Features
+* [x] Load
+* [x] Save 
+* [ ] Filter candela arrays
 
 [License (MIT)](https://github.com/fknfilewalker/tinyies/blob/main/LICENSE)
