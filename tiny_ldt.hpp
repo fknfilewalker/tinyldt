@@ -40,6 +40,7 @@
 #include <vector>
 #include <array>
 #include <fstream>
+#include <sstream>
 
 #ifdef TINYLDT_USE_DOUBLE
 #define TINYLDT_FPN double
@@ -78,9 +79,9 @@ public:
         uint32_t ltyp;              /* Type indicator (0 - point source with no symmetry; 1 - symmetry  about the vertical axis; 2 - linear luminaire; 3 - point source with any other symmetry. Note: only linear luminaires, Ityp = 2, are being subdivided in longitudinal and transverse directions) */
         uint32_t lsym;              /* Symmetry indicator (0 ... no symmetry; 1 - symmetry about the vertical axis; 2 - symmetry to plane C0-C180; 3 - symmetry to plane C90-C270; 4 - symmetry to plane C0-C180 and to plane C90-C270) */
         uint32_t mc, mc1, mc2;      /* Number of C-planes between 0 and 360 degrees (usually 24 for interior, 36 for road lighting luminaires) */
-        TINYLDT_FPN dc;                   /* Distance between C-planes (Dc = 0 for non-equidistantly available C-planes) */
+        TINYLDT_FPN dc;             /* Distance between C-planes (Dc = 0 for non-equidistantly available C-planes) */
         uint32_t ng;                /* Number of luminous intensities in each C-plane (usually 19 or 37) */
-        TINYLDT_FPN dg;                   /* Distance between luminous intensities per C-plane (Dg = 0 for non-equidistantly available luminous intensities in C-planes) */
+        TINYLDT_FPN dg;             /* Distance between luminous intensities per C-plane (Dg = 0 for non-equidistantly available luminous intensities in C-planes) */
 
         std::string measurement_report_number;
         std::string luminaire_name;
@@ -99,8 +100,8 @@ public:
         uint32_t height_luminous_area_c180; /* mm */
         uint32_t height_luminous_area_c270; /* mm */
 
-        TINYLDT_FPN dff;                          /* % */
-        TINYLDT_FPN lorl;                         /* % */
+        TINYLDT_FPN dff;                    /* % */
+        TINYLDT_FPN lorl;                   /* % */
         TINYLDT_FPN conversion_factor;
         uint32_t tilt_of_luminaire;
         uint32_t n;
@@ -118,7 +119,7 @@ public:
             uint32_t total_luminous_flux;   /* lm */
             uint32_t color_temperature;
             uint32_t color_rendering_group;
-            TINYLDT_FPN watt;                     /* W */
+            TINYLDT_FPN watt;               /* W */
         };
         std::vector<lamp_data_s> lamp_data;
 
@@ -225,6 +226,78 @@ public:
 #undef CATCH
         f.close();
         return true;
+    }
+
+    static bool write_ldt(const std::string& filename, const light& ldt, const uint32_t precision = std::numeric_limits<float>::max_digits10) {
+        std::stringstream ss;
+        ss.precision(precision);
+
+        /* line  1 */ ss << ldt.manufacturer << std::endl;
+        /* line  2 */ ss << ldt.ltyp << std::endl;
+        /* line  3 */ ss << ldt.lsym << std::endl;
+        /* line  4 */ ss << ldt.mc << std::endl;
+        /* line  5 */ ss << ldt.dc << std::endl;
+        /* line  6 */ ss << ldt.ng << std::endl;
+        /* line  7 */ ss << ldt.dg << std::endl;
+
+        /* line  8 */ ss << ldt.measurement_report_number << std::endl;
+	    /* line  9 */ ss << ldt.luminaire_name << std::endl;
+	    /* line 10 */ ss << ldt.luminaire_number << std::endl;
+	    /* line 11 */ ss << ldt.file_name << std::endl;
+	    /* line 12 */ ss << ldt.date_user << std::endl;
+
+        /* line 13 */ ss << ldt.length_luminaire << std::endl;
+        /* line 14 */ ss << ldt.width_luminaire << std::endl;
+        /* line 15 */ ss << ldt.height_luminaire << std::endl;
+        /* line 16 */ ss << ldt.length_luminous_area << std::endl;
+        /* line 17 */ ss << ldt.width_luminous_area << std::endl;
+        /* line 18 */ ss << ldt.height_luminous_area_c0 << std::endl;
+        /* line 19 */ ss << ldt.height_luminous_area_c90 << std::endl;
+        /* line 20 */ ss << ldt.height_luminous_area_c180 << std::endl;
+        /* line 21 */ ss << ldt.height_luminous_area_c270 << std::endl;
+        /* line 22 */ ss << ldt.dff << std::endl;
+        /* line 23 */ ss << ldt.lorl << std::endl;
+        /* line 24 */ ss << ldt.conversion_factor << std::endl;
+        /* line 25 */ ss << ldt.tilt_of_luminaire << std::endl;
+        /* line 26 */ ss << ldt.n << std::endl;
+
+        // for each in the file defined lamp
+        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+            /* line 26a */ ss << ld.number_of_lamps << std::endl;
+        }
+        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+            /* line 26b */ ss << ld.type_of_lamps << std::endl;
+        }
+        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+            /* line 26c */ ss << ld.total_luminous_flux << std::endl;
+        }
+        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+            /* line 26d */ ss << ld.color_temperature << std::endl;
+        }
+        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+            /* line 26e */ ss << ld.color_rendering_group << std::endl;
+        }
+        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+            /* line 26f */ ss << ld.watt << std::endl;
+        }
+        for (const TINYLDT_FPN& v : ldt.dr) {
+            /* line 27 */ ss << v << std::endl;
+        }
+        for (const TINYLDT_FPN& v : ldt.angles_c) {
+            /* line 28 */ ss << v << std::endl;
+        }
+        for (const TINYLDT_FPN& v : ldt.angles_g) {
+            /* line 29 */ ss << v << std::endl;
+        }
+        for (const TINYLDT_FPN& v : ldt.luminous_intensity_distribution) {
+            /* line 30 */ ss << v << std::endl;
+        }
+
+    	std::ofstream file(filename, std::ios::out | std::ios::trunc);
+		if (!file.is_open()) return false;
+		file << ss.rdbuf();
+		file.close();
+		return true;
     }
 
 private:
