@@ -22,11 +22,11 @@ if (!tiny_ldt<float>::write_ldt("out.ldt", ldt, /*optional precision*/ 10)) {
 }
 ```
 
-![asd](image.png)
+![example](image.jpg)
 
 ## Features
 * [x] Load LDT
 * [x] Save LDT
 * [ ] Filter candela array data (e.g. resize)
 
-[License (MIT)](https://github.com/fknfilewalker/tinyies/blob/main/LICENSE)
+[License (MIT)](https://github.com/fknfilewalker/tinyldt/blob/main/LICENSE)
