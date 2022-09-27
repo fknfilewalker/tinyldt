@@ -28,6 +28,7 @@ SOFTWARE.
 #include <array>
 #include <fstream>
 #include <sstream>
+#include <limits>
 
 template <typename T>
 class tiny_ldt {
@@ -160,22 +161,22 @@ public:
 
         // for each in the file defined lamp
         ldt_out.lamp_data.resize(ldt_out.n);
-        for (light::lamp_data_s& ld : ldt_out.lamp_data) {
+        for (auto& ld : ldt_out.lamp_data) {
             /* line 26a */ NEXT_LINE("Number of lamps") CATCH(ld.number_of_lamps = std::stoi(line))
         }
-        for (light::lamp_data_s& ld : ldt_out.lamp_data) {
+        for (auto& ld : ldt_out.lamp_data) {
             /* line 26b */ NEXT_LINE("Type of lamps") ld.type_of_lamps = line;
         }
-        for (light::lamp_data_s& ld : ldt_out.lamp_data) {
+        for (auto& ld : ldt_out.lamp_data) {
             /* line 26c */ NEXT_LINE("Total luminous flux") CATCH(ld.total_luminous_flux = std::stoi(line))
         }
-        for (light::lamp_data_s& ld : ldt_out.lamp_data) {
+        for (auto& ld : ldt_out.lamp_data) {
             /* line 26d */ NEXT_LINE("Color appearance") CATCH(ld.color_temperature = std::stoi(line))
         }
-        for (light::lamp_data_s& ld : ldt_out.lamp_data) {
+        for (auto& ld : ldt_out.lamp_data) {
             /* line 26e */ NEXT_LINE("Color rendering group") CATCH(ld.color_rendering_group = std::stoi(line))
         }
-        for (light::lamp_data_s& ld : ldt_out.lamp_data) {
+        for (auto& ld : ldt_out.lamp_data) {
             /* line 26f */ NEXT_LINE("Wattage including ballast") CATCH(ld.watt = toTemplateType(line))
         }
         for (T& v : ldt_out.dr) {
@@ -240,22 +241,22 @@ public:
         /* line 26 */ ss << ldt.n << std::endl;
 
         // for each in the file defined lamp
-        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+        for (const auto& ld : ldt.lamp_data) {
             /* line 26a */ ss << ld.number_of_lamps << std::endl;
         }
-        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+        for (const auto& ld : ldt.lamp_data) {
             /* line 26b */ ss << ld.type_of_lamps << std::endl;
         }
-        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+        for (const auto& ld : ldt.lamp_data) {
             /* line 26c */ ss << ld.total_luminous_flux << std::endl;
         }
-        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+        for (const auto& ld : ldt.lamp_data) {
             /* line 26d */ ss << ld.color_temperature << std::endl;
         }
-        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+        for (const auto& ld : ldt.lamp_data) {
             /* line 26e */ ss << ld.color_rendering_group << std::endl;
         }
-        for (const light::lamp_data_s& ld : ldt.lamp_data) {
+        for (const auto& ld : ldt.lamp_data) {
             /* line 26f */ ss << ld.watt << std::endl;
         }
         for (const T& v : ldt.dr) {
@@ -271,11 +272,11 @@ public:
             /* line 30 */ ss << v << std::endl;
         }
 
-    	std::ofstream file(filename, std::ios::out | std::ios::trunc);
-		if (!file.is_open()) return false;
-		file << ss.rdbuf();
-		file.close();
-		return true;
+        std::ofstream file(filename, std::ios::out | std::ios::trunc);
+        if (!file.is_open()) return false;
+        file << ss.rdbuf();
+        file.close();
+        return true;
     }
 
 private:
@@ -286,7 +287,7 @@ private:
         return 0;
     }
 
-    static bool calc_mc1_mc2(light &l) {
+    static bool calc_mc1_mc2(light& l) {
         switch (l.lsym) {
         case 0:
             l.mc1 = 1; l.mc2 = l.mc;
@@ -295,13 +296,13 @@ private:
             l.mc1 = 1; l.mc2 = 1;
             return false;
         case 2:
-            l.mc1 = 1; l.mc2 = l.mc/2+1;
+            l.mc1 = 1; l.mc2 = l.mc / 2 + 1;
             return false;
         case 3:
-            l.mc1 = 3*l.mc/4+1; l.mc2 = l.mc1 + l.mc/2;
+            l.mc1 = 3 * l.mc / 4 + 1; l.mc2 = l.mc1 + l.mc / 2;
             return false;
         case 4:
-            l.mc1 = 1; l.mc2 = l.mc/4+1;
+            l.mc1 = 1; l.mc2 = l.mc / 4 + 1;
             return false;
         default:
             return true;
