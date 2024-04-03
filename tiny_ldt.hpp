@@ -31,32 +31,32 @@ SOFTWARE.
 #include <limits>
 
 template <typename T>
-class tiny_ldt {
-    static_assert(std::is_same<T, float>::value || std::is_same<T, double>::value, "T must be float or double");
-public:
+struct tiny_ldt {
+    static_assert(std::is_floating_point<T>::value, "T must be floating point");
     // https://docs.agi32.com/PhotometricToolbox/Content/Open_Tool/eulumdat_file_format.htm
     // https://web.archive.org/web/20190717124121/http://www.helios32.com/Eulumdat.htm
     // https://de.wikipedia.org/wiki/EULUMDAT
     struct light {
-        light() : ltyp(0),
-            lsym(0),
-            mc(0), mc1(0), mc2(0),
-            dc(0),
-            ng(0),
-            dg(0),
-            height_luminaire(0),
-            length_luminaire(0),
-            width_luminaire(0),
-            length_luminous_area(0),
-            width_luminous_area(0),
-            height_luminous_area_c0(0),
-            height_luminous_area_c90(0),
-            height_luminous_area_c180(0),
-            height_luminous_area_c270(0),
-            dff(0), lorl(0),
-            conversion_factor(0), tilt_of_luminaire(0),
-            n(0),
-            dr({})
+        light() :
+    		ltyp{},
+            lsym{},
+            mc{}, mc1{}, mc2{},
+            dc{},
+            ng{},
+            dg{},
+            height_luminaire{},
+            length_luminaire{},
+            width_luminaire{},
+            length_luminous_area{},
+            width_luminous_area{},
+            height_luminous_area_c0{},
+            height_luminous_area_c90{},
+            height_luminous_area_c180{},
+            height_luminous_area_c270{},
+            dff{}, lorl{},
+            conversion_factor{}, tilt_of_luminaire{},
+            n{},
+            dr{}
         {}
 
         std::string manufacturer;   /* Company identification/databank/version/format identification */
@@ -91,14 +91,15 @@ public:
         uint32_t n;
 
         struct lamp_data_s {
-            lamp_data_s() : number_of_lamps(0),
-                total_luminous_flux(0),
-                color_temperature(0),
-                color_rendering_group(0),
-                watt(0)
+            lamp_data_s() :
+                number_of_lamps{},
+                total_luminous_flux{},
+                color_temperature{},
+                color_rendering_group{},
+                watt{}
             {}
 
-            int number_of_lamps;
+            int number_of_lamps; // negative sign indicates absolute photometry
             std::string type_of_lamps;
             uint32_t total_luminous_flux;   /* lm */
             uint32_t color_temperature;
@@ -113,7 +114,7 @@ public:
         std::vector<T> luminous_intensity_distribution; /* cd/1000 lumens */
     };
 
-    static bool load_ldt(const std::string filename, std::string& err_out, std::string& warn_out, light& ldt_out) {
+    static bool load_ldt(const std::string& filename, std::string& err_out, std::string& warn_out, light& ldt_out) {
         std::ifstream f(filename);
         if (!f) {
             err_out = "Failed reading file: " + filename;
@@ -127,16 +128,16 @@ public:
 #define CATCH(a) try{a;} catch (...) { warn_out = "Some values could not be read"; }
 
         /* line  1 */ NEXT_LINE("Manufacturer") ldt_out.manufacturer = line;
-        /* line  2 */ NEXT_LINE("Type") CATCH(ldt_out.ltyp = std::stoi(line))
-        /* line  3 */ NEXT_LINE("Symmetry") CATCH(ldt_out.lsym = std::stoi(line))
-        /* line  4 */ NEXT_LINE("Mc") CATCH(ldt_out.mc = std::stoi(line))
+        /* line  2 */ NEXT_LINE("Type") CATCH(convertToType(line, ldt_out.ltyp))
+        /* line  3 */ NEXT_LINE("Symmetry") CATCH(convertToType(line, ldt_out.lsym))
+        /* line  4 */ NEXT_LINE("Mc") CATCH(convertToType(line, ldt_out.mc))
         if (calc_mc1_mc2(ldt_out)) {
             err_out = "Error reading light symmetry";
             return false;
         }
-        /* line  5 */ NEXT_LINE("Dc") CATCH(ldt_out.dc = toTemplateType(line))
-        /* line  6 */ NEXT_LINE("Ng") CATCH(ldt_out.ng = std::stoi(line))
-        /* line  7 */ NEXT_LINE("Dg") CATCH(ldt_out.dg = toTemplateType(line))
+        /* line  5 */ NEXT_LINE("Dc") CATCH(convertToType(line, ldt_out.dc))
+        /* line  6 */ NEXT_LINE("Ng") CATCH(convertToType(line, ldt_out.ng))
+        /* line  7 */ NEXT_LINE("Dg") CATCH(convertToType(line, ldt_out.dg))
 
         /* line  8 */ NEXT_LINE("Measurement report number") ldt_out.measurement_report_number = line;
         /* line  9 */ NEXT_LINE("Luminaire name") ldt_out.luminaire_name = line;
@@ -144,51 +145,51 @@ public:
         /* line 11 */ NEXT_LINE("File name") ldt_out.file_name = line;
         /* line 12 */ NEXT_LINE("Date/user") ldt_out.date_user = line;
 
-        /* line 13 */ NEXT_LINE("Length/diameter of luminaire") CATCH(ldt_out.length_luminaire = std::stoi(line))
-        /* line 14 */ NEXT_LINE("Width of luminaire") CATCH(ldt_out.width_luminaire = std::stoi(line))
-        /* line 15 */ NEXT_LINE("Height of luminaire") CATCH(ldt_out.height_luminaire = std::stoi(line))
-        /* line 16 */ NEXT_LINE("Length/diameter of luminous area") CATCH(ldt_out.length_luminous_area = std::stoi(line))
-        /* line 17 */ NEXT_LINE("Width of luminous area") CATCH(ldt_out.width_luminous_area = std::stoi(line))
-        /* line 18 */ NEXT_LINE("Height of luminous area C0-plane") CATCH(ldt_out.height_luminous_area_c0 = std::stoi(line))
-        /* line 19 */ NEXT_LINE("Height of luminous area C90-plane") CATCH(ldt_out.height_luminous_area_c90 = std::stoi(line))
-        /* line 20 */ NEXT_LINE("Height of luminous area C180-plane") CATCH(ldt_out.height_luminous_area_c180 = std::stoi(line))
-        /* line 21 */ NEXT_LINE("Height of luminous area C270-plane") CATCH(ldt_out.height_luminous_area_c270 = std::stoi(line))
-        /* line 22 */ NEXT_LINE("Downward flux fraction") CATCH(ldt_out.dff = toTemplateType(line))
-        /* line 23 */ NEXT_LINE("Light output ratio luminaire") CATCH(ldt_out.lorl = toTemplateType(line))
-        /* line 24 */ NEXT_LINE("Conversion factor for luminous intensities") CATCH(ldt_out.conversion_factor = toTemplateType(line))
-        /* line 25 */ NEXT_LINE("Tilt of luminaire during measurement") CATCH(ldt_out.tilt_of_luminaire = std::stoi(line))
-        /* line 26 */ NEXT_LINE("Number of standard sets of lamps") CATCH(ldt_out.n = std::stoi(line))
+        /* line 13 */ NEXT_LINE("Length/diameter of luminaire") CATCH(convertToType(line, ldt_out.length_luminaire))
+		/* line 14 */ NEXT_LINE("Width of luminaire") CATCH(convertToType(line, ldt_out.width_luminaire))
+		/* line 15 */ NEXT_LINE("Height of luminaire") CATCH(convertToType(line, ldt_out.height_luminaire))
+		/* line 16 */ NEXT_LINE("Length/diameter of luminous area") CATCH(convertToType(line, ldt_out.length_luminous_area))
+		/* line 17 */ NEXT_LINE("Width of luminous area") CATCH(convertToType(line, ldt_out.width_luminous_area))
+		/* line 18 */ NEXT_LINE("Height of luminous area C0-plane") CATCH(convertToType(line, ldt_out.height_luminous_area_c0))
+		/* line 19 */ NEXT_LINE("Height of luminous area C90-plane") CATCH(convertToType(line, ldt_out.height_luminous_area_c90))
+		/* line 20 */ NEXT_LINE("Height of luminous area C180-plane") CATCH(convertToType(line, ldt_out.height_luminous_area_c180))
+		/* line 21 */ NEXT_LINE("Height of luminous area C270-plane") CATCH(convertToType(line, ldt_out.height_luminous_area_c270))
+		/* line 22 */ NEXT_LINE("Downward flux fraction") CATCH(convertToType(line, ldt_out.dff))
+		/* line 23 */ NEXT_LINE("Light output ratio luminaire") CATCH(convertToType(line, ldt_out.lorl))
+		/* line 24 */ NEXT_LINE("Conversion factor for luminous intensities") CATCH(convertToType(line, ldt_out.conversion_factor))
+		/* line 25 */ NEXT_LINE("Tilt of luminaire during measurement") CATCH(convertToType(line, ldt_out.tilt_of_luminaire))
+		/* line 26 */ NEXT_LINE("Number of standard sets of lamps") CATCH(convertToType(line, ldt_out.n))
 
         // for each in the file defined lamp
         ldt_out.lamp_data.resize(ldt_out.n);
         for (auto& ld : ldt_out.lamp_data) {
-            /* line 26a */ NEXT_LINE("Number of lamps") CATCH(ld.number_of_lamps = std::stoi(line))
+            /* line 26a */ NEXT_LINE("Number of lamps") CATCH(convertToType(line, ld.number_of_lamps))
         }
         for (auto& ld : ldt_out.lamp_data) {
             /* line 26b */ NEXT_LINE("Type of lamps") ld.type_of_lamps = line;
         }
         for (auto& ld : ldt_out.lamp_data) {
-            /* line 26c */ NEXT_LINE("Total luminous flux") CATCH(ld.total_luminous_flux = std::stoi(line))
+            /* line 26c */ NEXT_LINE("Total luminous flux") CATCH(convertToType(line, ld.total_luminous_flux))
         }
         for (auto& ld : ldt_out.lamp_data) {
-            /* line 26d */ NEXT_LINE("Color appearance") CATCH(ld.color_temperature = std::stoi(line))
+            /* line 26d */ NEXT_LINE("Color appearance") CATCH(convertToType(line, ld.color_temperature))
         }
         for (auto& ld : ldt_out.lamp_data) {
-            /* line 26e */ NEXT_LINE("Color rendering group") CATCH(ld.color_rendering_group = std::stoi(line))
+            /* line 26e */ NEXT_LINE("Color rendering group") CATCH(convertToType(line, ld.color_rendering_group))
         }
         for (auto& ld : ldt_out.lamp_data) {
-            /* line 26f */ NEXT_LINE("Wattage including ballast") CATCH(ld.watt = toTemplateType(line))
+            /* line 26f */ NEXT_LINE("Wattage including ballast") CATCH(convertToType(line, ld.watt))
         }
         for (T& v : ldt_out.dr) {
-            /* line 27 */ NEXT_LINE("Direct ratios for room indices k = 0.6 ... 5") CATCH(v = toTemplateType(line))
+            /* line 27 */ NEXT_LINE("Direct ratios for room indices k = 0.6 ... 5") CATCH(convertToType(line, v))
         }
         ldt_out.angles_c.resize(ldt_out.mc);
         for (T& v : ldt_out.angles_c) {
-            /* line 28 */ NEXT_LINE("Angles C") CATCH(v = toTemplateType(line))
+            /* line 28 */ NEXT_LINE("Angles C") CATCH(convertToType(line, v))
         }
         ldt_out.angles_g.resize(ldt_out.ng);
         for (T& v : ldt_out.angles_g) {
-            /* line 29 */ NEXT_LINE("Angles G") CATCH(v = toTemplateType(line))
+            /* line 29 */ NEXT_LINE("Angles G") CATCH(convertToType(line, v))
         }
         // 30 ((Mc2 - Mc1 + 1) * Ng)
         // if lsym 0 : mc1 = 1, mc2 = mc
@@ -198,7 +199,7 @@ public:
         // if lsym 4 : mc1 = 1, mc2 = mc / 4 + 1
         ldt_out.luminous_intensity_distribution.resize((static_cast<size_t>(ldt_out.mc2) - static_cast<size_t>(ldt_out.mc1) + 1) * static_cast<size_t>(ldt_out.ng));
         for (T& v : ldt_out.luminous_intensity_distribution) {
-            /* line 29 */ NEXT_LINE("Luminous intensity distribution") CATCH(v = toTemplateType(line))
+            /* line 29 */ NEXT_LINE("Luminous intensity distribution") CATCH(convertToType(line, v))
         }
 
 #undef NEXT_LINE
@@ -280,11 +281,13 @@ public:
     }
 
 private:
-    static T toTemplateType(const std::string& s)
+    template <typename U>
+    static void convertToType(const std::string& s, U& out)
     {
-        if (std::is_same<T, float>::value) return std::stof(s);
-        if (std::is_same<T, double>::value) return std::stod(s);
-        return 0;
+        if constexpr (std::is_same<T, float>::value) out = std::stof(s);
+        if constexpr (std::is_same<T, double>::value) out = std::stod(s);
+        if constexpr (std::is_same<T, int>::value) out = std::stoi(s);
+        if constexpr (std::is_same<T, uint32_t>::value) out = std::stoul(s);
     }
 
     static bool calc_mc1_mc2(light& l) {
