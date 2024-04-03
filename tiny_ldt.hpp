@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright(c) 2021 - 2022 Lukas Lipp
+Copyright(c) 2021 - 2024 Lukas Lipp
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this softwareand associated documentation files(the "Software"), to deal
@@ -284,10 +284,10 @@ private:
     template <typename U>
     static void convertToType(const std::string& s, U& out)
     {
-        if constexpr (std::is_same<T, float>::value) out = std::stof(s);
-        if constexpr (std::is_same<T, double>::value) out = std::stod(s);
-        if constexpr (std::is_same<T, int>::value) out = std::stoi(s);
-        if constexpr (std::is_same<T, uint32_t>::value) out = std::stoul(s);
+        if (std::is_same<T, float>::value) out = std::stof(s);
+        if (std::is_same<T, double>::value) out = std::stod(s);
+        if (std::is_same<T, int>::value) out = std::stoi(s);
+        if (std::is_same<T, uint32_t>::value) out = std::stoul(s);
     }
 
     static bool calc_mc1_mc2(light& l) {
